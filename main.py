@@ -14,8 +14,10 @@ LIMIT = 30
 WEIGHTS = "/root/python/tensorflow/projects/repo/densenet/weights/final.h5"
 WEIGHTS_COPY_FINAL = "/home/joey/python/tensorflow/projects/densenet/weights_copy_FINAL.h5"
 
+# TODO: clean this mess
+# TODO: actually train the network
+
 def preprocess(data):
-    #data['image'] = tf.image.per_image_standardization(data['image'])
     data['image'] = tf.image.convert_image_dtype(data['image'], tf.float32)
     data['image'] = tf.pad(data['image'], [[4, 4], [4, 4], [0, 0]])
     data['image'] = tf.image.random_crop(data['image'], [32, 32, 3])
@@ -24,23 +26,20 @@ def preprocess(data):
 
     return data
 
-def trainEpoch():
-    global train_unprocessed
-    global test_unprocessed
-    global train_accuracy
-    global test_accuracy
-    global history
-    global epoch
-    global count
-    global lr
-
-    global net
-    global opt
-    global loss
-
+def trainEpoch(train_data,
+               test_data,
+               train_acc,
+               test_acc,
+               history,
+               epoch,
+               count,
+               lr,
+               net,
+               opt,
+               loss):
     epoch_start = time.time()
     i = 1.0
-    for train in train_unprocessed:
+    for train in train_data:
         start = time.time()
         with tf.GradientTape() as tape:
             logits = net(train['image'], training=True)
@@ -61,7 +60,7 @@ def trainEpoch():
         i+=1
 
     i = 1.0
-    for test in test_unprocessed:
+    for test in test_data:
         start = time.time()
         logits = net(test['image'])
         test_loss = loss(test['label'], logits)
@@ -96,8 +95,8 @@ history = 0
 
 dataset = tfds.load('cifar10', shuffle_files=True)
 
-train_unprocessed = dataset['train'].map(preprocess).batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
-test_unprocessed = dataset['test'].map(preprocess).batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
+train = dataset['train'].map(preprocess).batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
+test = dataset['test'].map(preprocess).batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
 
 #net = create_net(k=12, depth=40, theta=1, bottleneck=False)
 net = DenseNet(k=12, depth=100, theta=0.5, bottleneck=True)
@@ -125,5 +124,6 @@ for epoch in range(EPOCHS):
     train_accuracy.reset_states()
     test_accuracy.reset_states()
     # training loop
-    trainEpoch()
+    trainEpoch(train, test, train_accuracy, test_accuracy,
+               history, epoch, count, lr, net, opt, loss)
     net.save_weights(WEIGHTS)
