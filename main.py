@@ -3,7 +3,6 @@ import time
 import os
 import tensorflow as tf
 import tensorflow_datasets as tfds
-import matplotlib.pyplot as plt
 from net import DenseNet
 
 BATCH_SIZE = 64
@@ -11,7 +10,8 @@ EPOCHS = 300
 TOL = 0.002
 TOL_DIFF = 0.01
 LIMIT = 30
-WEIGHTS = "/root/python/tensorflow/projects/repo/densenet/weights/final.h5"
+
+WEIGHTS_SAVE = "/root/python/tensorflow/projects/repo/densenet/weights/final.h5"
 WEIGHTS_COPY_FINAL = "/home/joey/python/tensorflow/projects/densenet/weights_copy_FINAL.h5"
 
 # TODO: clean this mess
@@ -98,7 +98,6 @@ dataset = tfds.load('cifar10', shuffle_files=True)
 train = dataset['train'].map(preprocess).batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
 test = dataset['test'].map(preprocess).batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
 
-#net = create_net(k=12, depth=40, theta=1, bottleneck=False)
 net = DenseNet(k=12, depth=100, theta=0.5, bottleneck=True)
 
 net.build_graph((None, 32, 32, 3))
@@ -109,7 +108,6 @@ net.summary()
 
 lr = 0.0009
 opt = tf.keras.optimizers.Adam(amsgrad=True)
-#opt = tf.keras.optimizers.SGD(learning_rate=lr, momentum=0.9, nesterov=True)
 loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
 # training/validation loop
@@ -118,12 +116,10 @@ test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
 epoch = 1
 count = 0
 
-#print(net.trainable_variables)
-
 for epoch in range(EPOCHS):
     train_accuracy.reset_states()
     test_accuracy.reset_states()
     # training loop
     trainEpoch(train, test, train_accuracy, test_accuracy,
                history, epoch, count, lr, net, opt, loss)
-    net.save_weights(WEIGHTS)
+    net.save_weights(WEIGHTS_SAVE)
